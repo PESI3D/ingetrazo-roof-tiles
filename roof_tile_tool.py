@@ -60,7 +60,7 @@ import time
 
 KEY = "roof_tile_tool"
 TITLE = "Roof Tiles"
-VERSION = "1.2"
+VERSION = "1.2.1"
 SETTINGS_KEY = "plugins/roof_tile_tool/params"
 MAX_TILES = 40_000              # objects in the covering: keep it sane
 BLOCK_W, BLOCK_H = 2.4, 1.3     # m: whole tiles combined into one component
@@ -1525,6 +1525,69 @@ def _columns(pl, p, spec, rows_y):
 def _np_matrix(T):
     from PySide6.QtGui import QMatrix4x4
     return QMatrix4x4(*[float(v) for v in T.reshape(-1)])
+
+
+def _frame_np(g):
+    """Where the group sits now, against where it was made: IngeTrazo's
+    ``group_frame`` (``xform · axes``) as a 4×4 numpy matrix, or ``None``
+    when it is still where it was made. Moving the group, or a group that
+    holds it, changes this — the stored roof faces do not move with it."""
+    import numpy as np
+    try:
+        from core.group import group_frame
+        m = group_frame(g)
+    except Exception:  # noqa: BLE001
+        return None
+    if m is None:
+        return None
+    F = np.array([[m(r, c) for c in range(4)] for r in range(4)], float)
+    if np.allclose(F, np.eye(4), atol=1e-9):
+        return None
+    return F
+
+
+def _map_pts(pts, M):
+    import numpy as np
+    if not pts:
+        return []
+    P = np.c_[np.asarray(pts, float), np.ones(len(pts))] @ M.T
+    return [tuple(float(v) for v in q[:3]) for q in P]
+
+
+def _map_faces(data, M):
+    """The roof faces (``data["faces"]``) carried by the 4×4 ``M``."""
+    out = dict(data)
+    out["faces"] = [{"outer": _map_pts(f["outer"], M),
+                     "holes": [_map_pts(h, M) for h in f.get("holes") or []]}
+                    for f in data["faces"]]
+    return out
+
+
+def _map_fp(fp, M):
+    """A footprint (outline in plan + its height ``z0``) carried by ``M``."""
+    import numpy as np
+    pts = _map_pts([(x, y, fp["z0"]) for x, y in fp["outline"]], M)
+    out = dict(fp)
+    out["outline"] = [(p[0], p[1]) for p in pts]
+    out["z0"] = float(np.mean([p[2] for p in pts])) if pts else fp["z0"]
+    return out
+
+
+def _place_like(new, old):
+    """Put ``new`` (built in the coordinates ``old`` was made in) where
+    ``old`` is now: same placement and axes — moved, turned or inside a
+    group that was moved, the rebuilt part stays in its place."""
+    from PySide6.QtGui import QMatrix4x4
+    A = getattr(old, "axes", None)
+    X = getattr(old, "xform", None)
+    if A is not None:
+        from core.group import transformed_mesh
+        new.mesh = transformed_mesh(new.mesh, A)
+        for c in getattr(new, "children", None) or []:
+            c.xform = A * (c.xform if c.xform is not None else QMatrix4x4())
+        new.axes = QMatrix4x4(A)
+    if X is not None:
+        new.xform = QMatrix4x4(X)
 
 
 def _tilt_local(spec, lift):
@@ -4130,8 +4193,16 @@ def run_roof(viewport, data, p, old=None, progress=None, select=True):
     if _CMD is None:
         _CMD = _make_command_class()
     name = old.name if old is not None else _next_name(viewport.scene)
+    # ``data`` is in world coordinates. A covering that is replaced is built
+    # in the coordinates it was made in and then put where the old one is
+    # now — it may have been moved, alone or inside a group.
+    F = _frame_np(old) if old is not None else None
+    if F is not None:
+        import numpy as np
+        data = _map_faces(data, np.linalg.inv(F))
     g, info = make_roof(data, p, name, progress)
     if old is not None:
+        _place_like(g, old)
         g.layer = old.layer
     else:
         lay = getattr(viewport.scene, "current_layer", None)
@@ -4986,6 +5057,9 @@ def show_edit(viewport, parent=None):
                                  for h in f.get("holes") or []]}
                       for f in rec.get("faces", [])],
             "shapes": list(rec.get("shapes") or [])}
+    F = _frame_np(g)
+    if F is not None:                  # moved since: the faces go along
+        data = _map_faces(data, F)
     return _dialog(viewport, data, g, parent)
 
 # ---------------------------------------------------------------------------
@@ -5166,8 +5240,13 @@ def run_shape(viewport, fp, p, old=None, select=True):
     if _CMD is None:
         _CMD = _make_command_class()
     name = old.name if old is not None else _next_shape_name(viewport.scene)
+    F = _frame_np(old) if old is not None else None
+    if F is not None:                  # built where it was made, then placed
+        import numpy as np
+        fp = _map_fp(fp, np.linalg.inv(F))
     g, info = make_shape(fp, p, name)
     if old is not None:
+        _place_like(g, old)
         g.layer = old.layer
         g.uid = old.uid                  # the tiles made on it stay linked
         g.material = getattr(old, "material", None)
@@ -5200,7 +5279,12 @@ def recover_tiles(viewport, shape):
     if not data["faces"]:
         return 0
     n = 0
-    for g in list(viewport.scene.groups):
+    scene = viewport.scene
+    pool = list(scene.groups)
+    ctx = getattr(scene, "edit_group", None)
+    pool += [c for c in (getattr(ctx, "children", None) or [])
+             if c not in pool]
+    for g in pool:
         rec = roof_data(g) if isinstance(g, Group) else None
         if rec is None or shape.uid not in (rec.get("shapes") or []):
             continue
@@ -5920,6 +6004,9 @@ def show_edit_shape(viewport, parent=None):
     rec = shape_data(g)
     fp = {"outline": [tuple(q) for q in rec.get("outline", [])],
           "z0": float(rec.get("z0", 0.0)), "holes": 0}
+    F = _frame_np(g)
+    if F is not None:                  # moved since: the footprint goes along
+        fp = _map_fp(fp, F)
     return _shape_dialog(viewport, fp, g, parent)
 
 
