@@ -60,7 +60,7 @@ import time
 
 KEY = "roof_tile_tool"
 TITLE = "Roof Tiles"
-VERSION = "1.1"
+VERSION = "1.2"
 SETTINGS_KEY = "plugins/roof_tile_tool/params"
 MAX_TILES = 40_000              # objects in the covering: keep it sane
 BLOCK_W, BLOCK_H = 2.4, 1.3     # m: whole tiles combined into one component
@@ -1495,8 +1495,13 @@ def _columns(pl, p, spec, rows_y):
             s = (X1 - X0) / (n * W)
             info["stretch"] = s
             return X0, W * s, n, info
-        n = int(math.ceil((X1 - X0) / W)) + 1
-        return X0, W, n, info
+        # cut flush (mortar, board, metal, open): the cover width is fitted
+        # too, so the last column ends at the verge — no thin strip of a
+        # tile left over there (roofers shift the tiles the same way)
+        n = max(1, int(round((X1 - X0) / W)))
+        s = (X1 - X0) / (n * W)
+        info["stretch"] = s
+        return X0, W * s, n, info
     if vl:
         X0 = min(min(pc["a"][0], pc["b"][0]) for pc in vl) - ov
         n = int(math.ceil((xmax - X0) / W)) + 2
@@ -1620,13 +1625,18 @@ class Protos:
     def __init__(self, spec, p, attrs):
         self.spec, self.p, self.attrs = spec, p, attrs
         self._solids, self._mf, self._mesh = {}, {}, {}
+        self._vol = {}
         self._cuts = {}
         self._blocks = {}
 
     def solids(self, kind):
         if kind not in self._solids:
             sp, det = self.spec, self.p["detail"]
-            if kind in ("tile", "verge_l", "verge_r"):
+            if kind == "half":                 # half-width tile at a verge
+                full = self.solids("tile")
+                s = [Solid([(x * 0.5, y, z) for x, y, z in so.V], so.F)
+                     for so in full]
+            elif kind in ("tile", "verge_l", "verge_r"):
                 if sp["prof"] == "custom":
                     s = custom_solids(sp, self.p["custom"])
                 else:
@@ -1666,6 +1676,12 @@ class Protos:
                 raise KeyError(kind)
             self._solids[kind] = s
         return self._solids[kind]
+
+    def volume(self, kind):
+        if kind not in self._vol:
+            m = self.manifold(kind)
+            self._vol[kind] = m.volume() if m is not None else 0.0
+        return self._vol[kind]
 
     def manifold(self, kind):
         if kind not in self._mf:
@@ -1827,6 +1843,27 @@ def layout(planes, p, spec, protos, progress=None):
                     return k
             return None
 
+        # tiles laid half-bond (plain tiles, Biber): every second course
+        # ends at a straight verge with a half tile, not a cut one
+        half_lines = []
+        if spec["half"]:
+            for pc in vl + vr:
+                (ax_, ay_), (bx_, by_) = pc["a"], pc["b"]
+                if abs(ax_ - bx_) > 1e-3:
+                    continue                    # a slanting verge: cut
+                xv = ax_ - ovv if pc["kind"] == "verge_l" else ax_ + ovv
+                half_lines.append((pc["kind"], xv,
+                                   min(ay_, by_) - p["eave_ov"] - 0.01,
+                                   max(ay_, by_) + 0.01))
+
+        def half_at(xc, mid):
+            for k, xv, ya, yb in half_lines:
+                if not (ya <= mid <= yb + Lt):
+                    continue
+                if abs(xc + 0.5 * cw - xv) < 0.05 * cw:
+                    return xv if k == "verge_l" else xv - 0.5 * cw
+            return None
+
         # mono-pitch ridges: the top course under each one turns into
         # mono-pitch ridge tiles; the courses above it there are dropped.
         # At an inner corner (the verge goes on up beside the ridge) the
@@ -1923,6 +1960,12 @@ def layout(planes, p, spec, protos, progress=None):
                 kind = "tile"
                 if tiles_mode and not spec["half"]:
                     kind = verge_kind(c, yr + 0.5 * Lt) or "tile"
+                if half_lines:
+                    hx = half_at(xc, yr + 0.5 * Lt)
+                    if hx is not None:          # a half tile at the verge
+                        recs.append(("half", hx, yr, hx, hx + 0.5 * cw, None))
+                        rcs.append((r, c))
+                        continue
                 clip = None
                 tp = top_of(xc) if tops else None
                 if tp is not None:
@@ -1950,7 +1993,12 @@ def layout(planes, p, spec, protos, progress=None):
         rects = np.asarray([(a, y, b, y + Lt) for _k, _x, y, a, b, _c in recs],
                            float)
         rects[:, 1] -= 0.002
-        hits = _rect_hits(rects, ea, eb)
+        # a tile flush with a straight edge (fitted to the verge) is whole:
+        # only an edge that really runs through it makes it a cut tile
+        hr = rects.copy()
+        hr[:, 0] += 0.001
+        hr[:, 2] -= 0.001
+        hits = _rect_hits(hr, ea, eb)
         centers = np.stack([(rects[:, 0] + rects[:, 2]) / 2,
                             (rects[:, 1] + rects[:, 3]) / 2], 1)
         inside = _inside(centers, rloops)
@@ -1976,7 +2024,9 @@ def layout(planes, p, spec, protos, progress=None):
                 info["tiles"] += 1
                 if kind.startswith("mono"):
                     info["mono_tiles"] += 1
-                if kind != "tile" and not kind.startswith("mono:"):
+                if kind == "half":
+                    info["half"] = info.get("half", 0) + 1
+                elif kind != "tile" and not kind.startswith("mono:"):
                     info["verge"] += 1
                 continue
             # a cut tile
@@ -1989,6 +2039,10 @@ def layout(planes, p, spec, protos, progress=None):
                 A = local[:3, :]
                 cut = m.transform(np.ascontiguousarray(A)) ^ pr
                 if cut.is_empty():
+                    continue
+                if cut.volume() < 0.01 * abs(np.linalg.det(A[:, :3])) * \
+                        protos.volume(kind):
+                    info["dropped"] += 1     # only touches the edge
                     continue
                 mm = cut.to_mesh()
                 V = np.asarray(mm.vert_properties, float)[:, :3]
@@ -2025,7 +2079,9 @@ def layout(planes, p, spec, protos, progress=None):
             info["cut"] += 1
             if kind.startswith("mono"):
                 info["mono_tiles"] += 1
-            if kind != "tile" and not kind.startswith("mono:"):
+            if kind == "half":
+                info["half"] = info.get("half", 0) + 1
+            elif kind != "tile" and not kind.startswith("mono:"):
                 info["verge"] += 1
         # whole tiles combined into blocks of BLOCK_COLS × BLOCK_ROWS: one
         # component per roof plane, laid like one big tile
@@ -2225,6 +2281,38 @@ def _verge_head_end(pl, pc, p, spec, sec, mode, s0, s1, ln):
         F += [[i, (i + 1) % m, m + (i + 1) % m, m + i] for i in range(m)]
         return man(V, F)
 
+    flange = None
+    if mode == "metal":
+        # the down-stand is trimmed round the head like a board; the top
+        # flange is bent over the head and runs down its front
+        u0 = min(us)
+        f_ = min(u for u in us if u > u0 + 1e-6) - u0       # sheet thickness
+        top = max(z for _u, z in sec) - f_
+        u1 = max(us)
+        sec = [(u0, min(z for _u, z in sec)), (u0 + f_, min(z for _u, z in sec)),
+               (u0 + f_, top + f_), (u0, top + f_)]
+        rect = [(u0, top), (u1, top), (u1, top + f_), (u0, top + f_)]
+        secs = []
+
+        def place(w_or_f, kind):
+            out = []
+            for u, z in rect:
+                r = z - zc
+                if kind == "s":
+                    out.append((u, w_or_f, z))
+                elif kind == "b":
+                    out.append((u, Ye + r * math.sin(w_or_f),
+                                zc + r * math.cos(w_or_f)))
+                else:
+                    out.append((u, Ye + r, zc - w_or_f))
+            return out
+
+        secs.append(place(w0, "s"))
+        secs.append(place(Ye, "s"))
+        for i in range(1, 13):
+            secs.append(place(0.5 * math.pi * i / 12, "b"))
+        secs.append(place(max(0.0, zc - zfront), "d"))
+        flange = solid_to_manifold([_loft(secs)])
     body = prism_w(sec, w0, wf + 0.01)
     cap = [(w0 - 1.0, -2.0), (w0 - 1.0, Hc + 0.001), (Ye, Hc + 0.001)]
     for i in range(1, 13):
@@ -2235,6 +2323,8 @@ def _verge_head_end(pl, pc, p, spec, sec, mode, s0, s1, ln):
     if body is None or capm is None:
         return None
     body = body ^ capm
+    if flange is not None:
+        body = body + flange
     if mode == "mortar":                   # the cut end of the head filled
         # the bead's own section, reaching down to the apron's lower edge
         zt0 = p["offset"] + t - 1e-6
@@ -2544,7 +2634,8 @@ def build_group(res, p, name, data):
     from core.group import Group
     from core.mesh import Mesh
     protos, attrs, spec = res["protos"], res["attrs"], res["spec"]
-    names = {"tile": "Tile", "verge_l": "Verge tile left",
+    names = {"tile": "Tile", "half": "Half tile",
+             "verge_l": "Verge tile left",
              "verge_r": "Verge tile right", "ridge": "Ridge tile",
              "ridge_end": "Ridge end cap"}
     names.update({k: "Ridge end cap" for k, _M in res["place"]
@@ -4095,6 +4186,8 @@ def result_text(info):
         parts.append(f"{info['blocks']:,} blocks of {bc}×{br}")
     if info.get("verge"):
         parts.append(f"{info['verge']} verge tiles")
+    if info.get("half"):
+        parts.append(f"{info['half']} half tiles")
     rt = info.get("ridge", 0) + info.get("hip", 0)
     if rt:
         parts.append(f"{rt} ridge/hip tiles")
