@@ -8,7 +8,7 @@ Two tools in one plugin:
 2. **Cover Roof…** covers any roof faces with real 3D roof tiles, with verge tiles, ridge tiles, hip and ridge end pieces.
 
 ## Install
-Download `roof_tile_tool.py` from the [latest release](../../releases/latest), copy it into the plugins folder (Extensions ▸ Open plugins folder; on Windows `%APPDATA%\ingetrazo\plugins`) and restart IngeTrazo. Needs IngeTrazo ≥ 0.5.7.
+Download `roof_tile_tool.py` from the [latest release](../../releases/latest), copy it into the plugins folder (Extensions ▸ Open plugins folder; on Windows `%APPDATA%\ingetrazo\plugins`) and restart IngeTrazo. Needs IngeTrazo ≥ 0.5.7 · tested with IngeTrazo 0.5.8.
 
 You find it under **Extensions ▸ Roof Tiles**, in the right-click menu and in the «Roof Tiles» toolbar (4 icons).
 
@@ -41,6 +41,12 @@ Select the roof faces (or the roof group) ▸ **Cover Roof…**. Eaves, ridges, 
 |---|---|
 | ![Verge tile](images/ortgangziegel_einteilig.png) | ![Ridge ends](images/firstenden_varianten.png) |
 | ![Mono-pitch ridge tiles](images/pultfirstziegel.png) | ![Verge finish](images/ortgang_abschluss.png) |
+
+## Changelog
+- **1.2.1** — moved, rotated or grouped roofs stay where they are when edited; tiles are laid again when the roof shape inside a group changes. Tested with IngeTrazo 0.5.8.
+- **1.2** — half tiles for half-bond tiles, cut-flush verges (no thin strips left), board and metal verges round a mono-pitch ridge.
+- **1.1** — tiles combined into components (far fewer objects), tiles in one piece, mono-pitch verge tile as one moulded part, eave course laid whole.
+- **1.0** — first release: Create Roof… (20 roof shapes on any footprint) and Cover Roof… (real 3D tiles, verges, ridges, hips, flashings), Live Preview.
 
 ## Note
 Product names only describe the tile shape; this plugin is not affiliated with any tile maker.

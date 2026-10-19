@@ -8,7 +8,7 @@ Zwei Werkzeuge in einem Plugin:
 2. **Cover Roof…** deckt beliebige Dachflächen mit echten 3D-Dachziegeln ein, mit Ortgangziegeln, Firstziegeln, Grat- und Firstenden.
 
 ## Installation
-`roof_tile_tool.py` aus dem [neuesten Release](../../releases/latest) laden, in den Plugin-Ordner kopieren (Extensions ▸ Open plugins folder, unter Windows `%APPDATA%\ingetrazo\plugins`) und IngeTrazo neu starten. Braucht IngeTrazo ≥ 0.5.7.
+`roof_tile_tool.py` aus dem [neuesten Release](../../releases/latest) laden, in den Plugin-Ordner kopieren (Extensions ▸ Open plugins folder, unter Windows `%APPDATA%\ingetrazo\plugins`) und IngeTrazo neu starten. Braucht IngeTrazo ≥ 0.5.7 · getestet mit IngeTrazo 0.5.8.
 
 Zu finden unter **Extensions ▸ Roof Tiles**, im Rechtsklickmenü und in der Werkzeugleiste «Roof Tiles» (4 Icons).
 
@@ -41,6 +41,12 @@ Dachflächen (oder die Dach-Gruppe) auswählen ▸ **Cover Roof…**. Traufe, Fi
 |---|---|
 | ![Ortgangziegel](images/ortgangziegel_einteilig.png) | ![Firstenden](images/firstenden_varianten.png) |
 | ![Pultfirstziegel](images/pultfirstziegel.png) | ![Ortgang-Abschluss](images/ortgang_abschluss.png) |
+
+## Änderungen
+- **1.2.1** — verschobene, gedrehte oder gruppierte Dächer bleiben beim Bearbeiten, wo sie sind; die Ziegel werden neu gelegt, wenn sich die Dachform in einer Gruppe ändert. Getestet mit IngeTrazo 0.5.8.
+- **1.2** — halbe Ziegel bei Biberschwanz im Halbverband, bündig geschnittene Ortgänge (keine schmalen Reststreifen), Brett- und Blechortgang um den Pultfirst.
+- **1.1** — Ziegel als Komponenten zusammengefasst (viel weniger Objekte), Ziegel aus einem Stück, Pult-Ortgangziegel als ein Formteil, Traufreihe ganz gelegt.
+- **1.0** — erste Veröffentlichung: Create Roof… (20 Dachformen auf beliebigem Grundriss) und Cover Roof… (echte 3D-Ziegel, Ortgänge, First, Grate, Bleche), Live-Vorschau.
 
 ## Hinweis
 Produktnamen dienen nur der Beschreibung der Ziegelform; das Plugin steht in keiner Verbindung zu einem Ziegelhersteller.
