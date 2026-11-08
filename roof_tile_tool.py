@@ -36,7 +36,11 @@ itself and lays the tiles the way a roofer does:
 Classic tiles from around the world are built in (Frankfurt pan, Harz pan,
 Toscana, flat interlocking tile, Marseille tile, plain tile «Biberschwanz»,
 monk and nun, English pantile, English plain tile, Spanish tile) — the
-dimensions are typical values, not the data of any one manufacturer. A tile
+dimensions are typical values, not the data of any one manufacturer.
+Steel sheet roofs too (1.3): trapezoidal sheets, corrugated sheet, double
+lock / angle / snap-lock standing seam, batten roll, sandwich panel,
+tile-effect steel sheet and steel shingles — laid eave to ridge in one
+length and cut at ridges, hips, valleys and verges. A tile
 of your own comes from an .igz or .obj file or from the selection.
 
 Every whole tile is an INSTANCE of one shared tile (a big roof stays light);
@@ -60,7 +64,7 @@ import time
 
 KEY = "roof_tile_tool"
 TITLE = "Roof Tiles"
-VERSION = "1.2.1"
+VERSION = "1.3"
 SETTINGS_KEY = "plugins/roof_tile_tool/params"
 MAX_TILES = 40_000              # objects in the covering: keep it sane
 BLOCK_W, BLOCK_H = 2.4, 1.3     # m: whole tiles combined into one component
@@ -133,6 +137,81 @@ PRESETS = [
          region="Spain / Latin America · clay", W=0.200, Wt=0.200, Lt=0.450,
          Lmin=0.330, Lmax=0.380, t=0.012, A=0.075, prof="spanish",
          half=False, verge="mortar", ridge=(0.110, 88, 0.450, 0.380)),
+] + [
+    # ---- steel sheet roofs (1.3) -------------------------------------------
+    # Typical profile sizes of the trade (rib height / rib pitch, cover
+    # width), not the data of any one maker. ``sheet``: laid as long sheets
+    # eave → ridge (Lmin…Lmax = the sheet length; a longer slope gets an end
+    # lap), cut at ridge, hips, valleys and verges, no stretching across the
+    # roof: the last sheet is cut at the verge. ``ribs`` profile periods per
+    # cover width, the rib centred on the side joint (the side lap).
+    #   rt / rb  rib width at the top / at the base (m)
+    #   core     sandwich panel: flat underside, ``t`` = panel thickness
+    dict(id="trap20", minpitch=7, sheet=True, metal=True,
+         name="Trapezoidal sheet 20/137 (Trapezblech)",
+         region="Steel sheet · low trapezoid", W=1.100, Wt=1.100, Lt=6.01,
+         Lmin=6.0, Lmax=6.0, t=0.003, A=0.020, prof="trap", ribs=8,
+         rt=0.028, rb=0.062, half=False, verge="metal",
+         mridge="angular", ridge=(0.10, 80, 2.0, 1.95)),
+    dict(id="trap35", minpitch=5, sheet=True, metal=True,
+         name="Trapezoidal sheet 35/207 (Trapezblech)",
+         region="Steel sheet · the classic roof trapezoid", W=1.035, Wt=1.035,
+         Lt=6.01, Lmin=6.0, Lmax=6.0, t=0.003, A=0.035, prof="trap", ribs=5,
+         rt=0.040, rb=0.100, half=False, verge="metal",
+         mridge="angular", ridge=(0.11, 80, 2.0, 1.95)),
+    dict(id="trap45", minpitch=5, sheet=True, metal=True,
+         name="Trapezoidal sheet 45/333 (Trapezblech)",
+         region="Steel sheet · wide trapezoid", W=1.000, Wt=1.000, Lt=6.01,
+         Lmin=6.0, Lmax=6.0, t=0.003, A=0.045, prof="trap", ribs=3,
+         rt=0.050, rb=0.120, half=False, verge="metal",
+         mridge="angular", ridge=(0.12, 80, 2.0, 1.95)),
+    dict(id="wave18", minpitch=7, sheet=True, metal=True,
+         name="Corrugated sheet 18/76 (Wellblech)",
+         region="Steel sheet · sine wave", W=1.064, Wt=1.064, Lt=6.01,
+         Lmin=6.0, Lmax=6.0, t=0.003, A=0.018, prof="wave", ribs=14,
+         half=False, verge="metal", mridge="round", ridge=(0.10, 80, 2.0, 1.95)),
+    dict(id="seam_double", minpitch=3, sheet=True, metal=True,
+         name="Standing seam, double lock (Doppelstehfalz)",
+         region="Steel / zinc / aluminium · seam 25 mm", W=0.500, Wt=0.500,
+         Lt=6.01, Lmin=6.0, Lmax=6.0, t=0.003, A=0.025, prof="seam", ribs=1,
+         rt=0.006, rb=0.012, half=False, verge="metal",
+         mridge="seam", ridge=(0.09, 80, 2.0, 1.95)),
+    dict(id="seam_angle", minpitch=25, sheet=True, metal=True,
+         name="Standing seam, angle seam (Winkelstehfalz)",
+         region="Steel / zinc / aluminium · angle seam 22 mm",
+         W=0.500, Wt=0.500, Lt=6.01, Lmin=6.0, Lmax=6.0, t=0.003, A=0.022,
+         prof="angle", ribs=1, rt=0.020, rb=0.026, half=False, verge="metal",
+         mridge="seam", ridge=(0.09, 80, 2.0, 1.95)),
+    dict(id="seam_snap", minpitch=7, sheet=True, metal=True,
+         name="Snap-lock standing seam (Klemmfalz)",
+         region="Steel sheet · seam 25 mm, pans with beads", W=0.510,
+         Wt=0.510, Lt=6.01, Lmin=6.0, Lmax=6.0, t=0.003, A=0.025,
+         prof="snap", ribs=1, rt=0.010, rb=0.018, half=False, verge="metal",
+         mridge="seam", ridge=(0.09, 80, 2.0, 1.95)),
+    dict(id="batten", minpitch=3, sheet=True, metal=True,
+         name="Batten roll (Leistendeckung)",
+         region="Steel / zinc / copper · batten 50 mm", W=0.600, Wt=0.600,
+         Lt=6.01, Lmin=6.0, Lmax=6.0, t=0.003, A=0.050, prof="batten",
+         ribs=1, rt=0.045, rb=0.060, half=False, verge="metal",
+         mridge="batten", ridge=(0.10, 80, 2.0, 1.95)),
+    dict(id="sandwich", minpitch=5, sheet=True, metal=True,
+         name="Sandwich panel, trapezoidal (Sandwichpaneel)",
+         region="Steel · insulated panel 80 mm", W=1.000, Wt=1.000, Lt=6.01,
+         Lmin=6.0, Lmax=6.0, t=0.080, A=0.040, prof="trap", ribs=4,
+         rt=0.030, rb=0.075, core=True, half=False, verge="metal",
+         mridge="angular", ridge=(0.16, 80, 2.0, 1.95)),
+    dict(id="tilesheet", minpitch=14, metal=True,
+         name="Tile-effect steel sheet (Pfannenblech / Dachpfannenprofil)",
+         region="Steel sheet · module 350 mm, step 15 mm", W=1.100,
+         Wt=1.100, Lt=0.362, Lmin=0.350, Lmax=0.350, t=0.012, A=0.025,
+         prof="wave", ribs=6, half=False, verge="metal",
+         mridge="round", ridge=(0.11, 80, 2.0, 1.95)),
+    dict(id="shingle", minpitch=25, metal=True,
+         name="Steel roof shingle (Stahldachschindel)",
+         region="Steel / aluminium · small panels, offset rows", W=0.600,
+         Wt=0.600, Lt=0.450, Lmin=0.390, Lmax=0.410, t=0.005, A=0.004,
+         prof="flat", half=True, verge="metal",
+         mridge="angular", ridge=(0.10, 80, 2.0, 1.95)),
 ]
 PRESET_BY_ID = {p["id"]: p for p in PRESETS}
 CUSTOM = "custom"
@@ -145,6 +224,14 @@ COLORS = [
     ("Anthracite", (0.20, 0.21, 0.22)),
     ("Black", (0.09, 0.09, 0.10)),
     ("Slate grey", (0.36, 0.38, 0.40)),
+    # metal roofs (typical RAL-like shades)
+    ("Anthracite grey (metal)", (0.22, 0.24, 0.26)),
+    ("Grey brown (metal)", (0.27, 0.23, 0.21)),
+    ("Oxide red (metal)", (0.42, 0.13, 0.11)),
+    ("Chrome green (metal)", (0.17, 0.27, 0.19)),
+    ("Silver (metal)", (0.64, 0.66, 0.68)),
+    ("Galvanised / zinc", (0.55, 0.58, 0.60)),
+    ("Copper", (0.62, 0.36, 0.22)),
 ]
 FLASHING_COLOR = (0.62, 0.64, 0.66)
 DETAIL = {"low": 8, "medium": 14, "high": 24}
@@ -192,8 +279,8 @@ def normalize_params(p) -> dict:
             v = default_params()[k]
         out[k] = min(hi, max(lo, v))
     num("W", 0.03, 2.0)
-    num("Lmin", 0.03, 2.0)
-    num("Lmax", 0.03, 2.0)
+    num("Lmin", 0.03, 15.0)
+    num("Lmax", 0.03, 15.0)
     if out["Lmax"] < out["Lmin"]:
         out["Lmax"] = out["Lmin"]
     for k in ("eave_ov", "verge_ov"):
@@ -250,6 +337,10 @@ def tile_spec(p) -> dict:
     else:
         spec = dict(PRESET_BY_ID[p["preset"]])
         spec["W"], spec["Lmin"], spec["Lmax"] = p["W"], p["Lmin"], p["Lmax"]
+        if spec.get("sheet"):
+            # one length for every sheet; the top one is cut at the ridge
+            spec["Lmin"] = spec["Lmax"] = max(0.5, p["Lmax"])
+            spec["Lt"] = spec["Lmax"] + 0.01
     spec["Wt"] = max(spec["Wt"], spec["W"])
     spec["Lmax"] = min(spec["Lmax"], spec["Lt"] - 0.01)
     spec["Lmin"] = min(spec["Lmin"], spec["Lmax"])
@@ -369,7 +460,71 @@ def _profile(prof, u, A):
     return 0.0
 
 
+_SHEET_PROFILES = ("trap", "wave", "seam", "angle", "snap", "batten")
+_RIB_DETAIL = {"low": 6, "medium": 10, "high": 16}
+
+
+def _sheet_profile(spec, u):
+    """Height of a steel sheet's underside at ``u`` = x / cover width: the
+    profile repeats ``ribs`` times per cover width, the rib centred on the
+    side joint (u = 0)."""
+    n = max(1, int(spec.get("ribs", 1)))
+    W, A, prof = spec["W"], spec["A"], spec["prof"]
+    P = W / n                              # rib pitch (m)
+    v = (u * n) % 1.0
+    d = min(v, 1.0 - v) * P                # distance to the rib centre (m)
+    if prof == "wave":                     # corrugated / tile-effect sheet
+        return A * (0.5 + 0.5 * math.cos(2.0 * math.pi * v))
+    a = 0.5 * spec.get("rt", 0.02)          # half width at the top
+    b = max(a + 1e-4, 0.5 * spec.get("rb", 0.05))   # … at the base
+    if prof == "snap":                     # rounded seam, two beads per pan
+        if d <= b:
+            f = min(1.0, (b - d) / (b - a))
+            return A * math.sin(0.5 * math.pi * f) ** 0.6
+        pan = P - 2.0 * b
+        k = (d - b) / max(pan, 1e-6)
+        bead = 0.0025 * (math.exp(-((k - 1.0 / 3.0) / 0.02) ** 2)
+                         + math.exp(-((k - 2.0 / 3.0) / 0.02) ** 2))
+        return bead
+    if d <= a:
+        return A
+    if d < b:
+        return A * (b - d) / (b - a)
+    return 0.0
+
+
+def _sheet_kinks(spec, x0, x1):
+    """The corners of a trapezoid-like sheet profile inside x0…x1."""
+    if spec.get("prof") not in ("trap", "seam", "angle", "batten", "snap"):
+        return []
+    n = max(1, int(spec.get("ribs", 1)))
+    P = spec["W"] / n
+    a = 0.5 * spec.get("rt", 0.02)
+    b = max(a + 1e-4, 0.5 * spec.get("rb", 0.05))
+    out = []
+    k0 = int(math.floor(x0 / P)) - 1
+    k1 = int(math.ceil(x1 / P)) + 1
+    for k in range(k0, k1 + 1):
+        c = k * P
+        for o in (-b, -a, a, b):
+            x = c + o
+            if x0 + 2e-4 < x < x1 - 2e-4:
+                out.append(x)
+    return out
+
+
 def _samples(spec, detail, x0, x1, smooth=True):
+    if spec.get("prof") in _SHEET_PROFILES and smooth:
+        P = spec["W"] / max(1, int(spec.get("ribs", 1)))
+        per = _RIB_DETAIL[detail]
+        if spec["prof"] != "wave" and spec["prof"] != "snap":
+            per = 2                        # straight pieces: the kinks do it
+        n = max(2, int(math.ceil((x1 - x0) / P * per)))
+        xs = [x0 + (x1 - x0) * i / n for i in range(n + 1)]
+        ks = _sheet_kinks(spec, x0, x1)
+        if ks:
+            xs = sorted(set(round(x, 7) for x in xs + ks))
+        return xs
     n = max(2, int(math.ceil((x1 - x0) / spec["W"] * DETAIL[detail]))) \
         if smooth else 2
     return [x0 + (x1 - x0) * i / n for i in range(n + 1)]
@@ -381,6 +536,11 @@ def _plate_z(spec, x, rebate=True):
     edge over the neighbour's lock (the last ``Wt − W``) the upper half, so
     where two tiles overlap they read as one plate, not as two stacked."""
     W, Wt, t, A = spec["W"], spec["Wt"], spec["t"], spec["A"]
+    if spec["prof"] in _SHEET_PROFILES:
+        h = _sheet_profile(spec, x / W)
+        if spec.get("core"):               # sandwich panel: flat underside
+            return 0.0, h + t
+        return h, h + t
     h = _profile(spec["prof"], x / W, A)
     if x < 0.0:
         return h, h + 0.5 * t - 0.002
@@ -518,6 +678,168 @@ def ridge_solid(spec, detail, taper=0.92):
         j = (i + 1) % m
         F.append([i, j, m + j, m + i])
     return Solid(V, F).fix_orientation()
+
+
+# ---- metal ridges (1.3) ----------------------------------------------------
+# Steel sheet roofs do not take ridge TILES: the ridge and the hips are
+# closed with a bent sheet («Firstblech» / «Gratblech»), its legs lying on
+# the roof at the roof's pitch, and its ends with a flat end plate
+# («Firstendstück»). Styles, as the trade makes them:
+#   angular  angular ridge flashing, legs 200 mm, drip edge
+#            (trapezoidal sheets, sandwich panels, shingles)
+#   round    half-round ridge capping with flanges
+#            (corrugated sheet, tile-effect sheet)
+#   seam     standing seam ridge cover: an angular cap lying ON the seams,
+#            with turned-down edges, a vented gap under it
+#   batten   batten roll ridge: a batten along the ridge, capped
+MRIDGE_T = 0.002                 # m: shown thickness of the ridge sheets
+MRIDGE_LABELS = {"angular": "Angular ridge flashing (Firstblech eckig)",
+                 "round": "Half-round ridge capping (Rundfirst)",
+                 "seam": "Standing seam ridge cover (Firstabdeckung)",
+                 "batten": "Batten roll ridge (Firstleiste)"}
+
+
+MRIDGE_CLEAR = 0.008             # m: ridge sheet above the rib tops / seams
+
+
+def _mridge_line(spec, style, slope):
+    """Centre line (x, z) of the ridge sheet's cross-section, x across the
+    ridge, z up; the sheets' pans meet the ridge at (0, 0) and fall by
+    ``slope`` (dz/dx) to both sides; ribs / seams stand ``A`` above them."""
+    A = spec["A"]
+    c = 1.0 / math.sqrt(1.0 + slope * slope)
+
+    def surf(x, lift=0.0):                 # ``lift`` above the pans
+        return -abs(x) * slope + lift / c
+
+    on = A + MRIDGE_CLEAR                  # resting on the rib tops
+    pan = 0.002                            # an edge turned down to the pans
+    if style == "round":
+        r = 0.075
+        th = math.radians(80)
+        xq = r * math.sin(th)
+        zq = surf(xq, on)
+        zc = zq - r * math.cos(th)
+        arc = [(r * math.sin(-th + 2 * th * i / 12),
+                zc + r * math.cos(-th + 2 * th * i / 12)) for i in range(13)]
+        lf = 0.10
+        right = [(xq + lf, surf(xq + lf, on)),
+                 (xq + lf + 0.003, surf(xq + lf, max(pan, on - 0.012)))]
+        left = [(-x, z) for x, z in right][::-1]
+        return left + arc + right
+    if style == "batten":
+        # a batten along the ridge under a cap; the pans are turned up
+        # against it (no flanges lying on the roof)
+        hb = A + MRIDGE_CLEAR + 0.004      # batten cap above the pans
+        pts_r = [(0.022, hb), (0.030, surf(0.030, pan))]
+        left = [(-x, z) for x, z in pts_r][::-1]
+        return left + pts_r
+    if style == "seam":
+        lg = 0.18
+        e = (lg, surf(lg, on))
+        right = [e, (lg + 0.003, surf(lg + 0.003, pan))]   # edge to the pans
+        left = [(-x, z) for x, z in right][::-1]
+        # apex raised by the vented gap (≈ 35 mm) over the seam ends
+        return left + [(0.0, on / c + 0.035)] + right
+    # angular
+    lg = 0.20
+    e = (lg, surf(lg, on))
+    right = [e, (lg + 0.003, surf(lg + 0.003, max(pan, on - 0.018)))]
+    left = [(-x, z) for x, z in right][::-1]
+    return left + [(0.0, on / c)] + right
+
+
+def _thicken(line, t):
+    """Closed (x, z) outline of a bent sheet of thickness ``t`` along
+    ``line``."""
+    n = len(line)
+    top, bot = [], []
+    for i in range(n):
+        a = line[max(0, i - 1)]
+        b = line[min(n - 1, i + 1)]
+        dx, dz = b[0] - a[0], b[1] - a[1]
+        ln = math.hypot(dx, dz) or 1.0
+        nx, nz = -dz / ln, dx / ln
+        x, z = line[i]
+        top.append((x + nx * t / 2, z + nz * t / 2))
+        bot.append((x - nx * t / 2, z - nz * t / 2))
+    return top + bot[::-1]
+
+
+def mridge_solid(spec, style, slope, length):
+    """A metal ridge / hip piece along y (0 … length)."""
+    poly = _thicken(_mridge_line(spec, style, slope), MRIDGE_T)
+    return _xz_prism(poly, 0.0, length)
+
+
+def mridge_end_solid(spec, style, slope, floor=0.0):
+    """The flat end plate («Firstendstück») at y = 0: it closes the space
+    under the ridge sheet down to ``floor`` above the pans (the top of the
+    verge flashings, or the pans) — never below the roof."""
+    import manifold3d as mf
+    line = _mridge_line(spec, style, slope)
+    c = 1.0 / math.sqrt(1.0 + slope * slope)
+    xs = [x for x, _z in line]
+    x0, x1 = min(xs) - 0.01, max(xs) + 0.01
+    zt = max(z for _x, z in line) + 1.0
+    under = [(x, z) for x, z in line] + [(line[-1][0], -10.0),
+                                         (line[0][0], -10.0)]
+    above = [(x0, -abs(x0) * slope + floor / c), (0.0, floor / c),
+             (x1, -abs(x1) * slope + floor / c), (x1, zt), (x0, zt)]
+
+    def cs(poly):
+        a2 = sum(poly[k][0] * poly[(k + 1) % len(poly)][1]
+                 - poly[(k + 1) % len(poly)][0] * poly[k][1]
+                 for k in range(len(poly)))
+        return mf.CrossSection([poly if a2 > 0 else poly[::-1]],
+                               mf.FillRule.Positive)
+    region = cs(under) ^ cs(above)
+    polys = [[(float(x), float(z)) for x, z in pg]
+             for pg in region.to_polygons() if len(pg) >= 3]
+    if not polys:
+        return _xz_prism([(0.0, 0.0), (0.001, 0.0), (0.0, 0.001)],
+                         -MRIDGE_T, 0.0)
+    best = max(polys, key=lambda pg: abs(sum(
+        pg[k][0] * pg[(k + 1) % len(pg)][1] - pg[(k + 1) % len(pg)][0] * pg[k][1]
+        for k in range(len(pg)))))
+    return _xz_prism(best, -MRIDGE_T, 0.0)
+
+
+def mridge_hood_solids(spec, slope, y0, y1, floor):
+    """Batten roll at a metal verge: the verge flashing's hood over the end
+    of the ridge batten cap (y0 … y1, the gable end at y0). The hood is a
+    slightly larger batten cap that stops on the verge flashing (``floor``
+    above the pans) and is closed at the gable by an end plate — the
+    ridge cap itself ends underneath it."""
+    import manifold3d as mf
+    A = spec["A"]
+    c = 1.0 / math.sqrt(1.0 + slope * slope)
+    # above the ridge cap and above the flashings' apex under it
+    hb = max(A + MRIDGE_CLEAR + 0.004, floor / c) + MRIDGE_T + 0.001
+    xw, xl = 0.022 + 0.003, 0.030 + 0.003
+    line = [(-xl, -xl * slope), (-xw, hb), (xw, hb), (xl, -xl * slope)]
+    sheet = _thicken(line, MRIDGE_T)
+    x0, x1 = -xl - 0.02, xl + 0.02
+    zt = hb + 1.0
+    above = [(x0, -abs(x0) * slope + floor / c), (0.0, floor / c),
+             (x1, -abs(x1) * slope + floor / c), (x1, zt), (x0, zt)]
+    under = [(-xl, -xl * slope)] + line[1:3] + [(xl, -xl * slope),
+                                               (xl, -10.0), (-xl, -10.0)]
+
+    def cs(poly):
+        a2 = sum(poly[k][0] * poly[(k + 1) % len(poly)][1]
+                 - poly[(k + 1) % len(poly)][0] * poly[k][1]
+                 for k in range(len(poly)))
+        return mf.CrossSection([poly if a2 > 0 else poly[::-1]],
+                               mf.FillRule.Positive)
+    out = []
+    for region, ya, yb in ((cs(sheet) ^ cs(above), y0, y1),
+                           (cs(under) ^ cs(above), y0, y0 + MRIDGE_T)):
+        for pg in region.to_polygons():
+            if len(pg) >= 3:
+                out.append(_xz_prism([(float(x), float(z)) for x, z in pg],
+                                     ya, yb))
+    return out
 
 
 END_STYLES = [("stone", "End stone (domed)"),
@@ -787,7 +1109,7 @@ def mono_corner(spec, detail, kind, ext, drop):
 def mono_solid(spec, length, leg=0.16, lip=0.09):
     """Mono-pitch ridge tile: a leg over the top course and a lip down the
     front, along y. x > 0 = over the roof, x < 0 = outside."""
-    t = spec["t"]
+    t = MRIDGE_T if spec.get("metal") else spec["t"]
     h = spec["A"] + spec["t"] + 0.006
     poly = [(-t, -lip), (0.0, -lip), (0.0, h), (leg, h),
             (leg, h + t), (-t, h + t)]
@@ -860,7 +1182,7 @@ def _polys_of(solids):
     return out
 
 
-def mesh_from_polys(polys, attrs, soft_deg=95.0):
+def mesh_from_polys(polys, attrs, soft_deg=35.0):
     """IngeTrazo Mesh from polygons; edges between faces that meet flatter
     than ``soft_deg`` are soft (a curved tile looks round)."""
     import numpy as np
@@ -923,6 +1245,29 @@ def soften(mesh, soft_deg=35.0):
         dot = sum(a * b for a, b in zip(ns[0], ns[1]))
         if dot > lim:
             e.soft = True
+
+
+def hide_rib_edges(mesh, max_deg=100.0, min_dz=0.02):
+    """Steel sheets: the bends of the profile (they all run up the slope)
+    are hidden edges — drawn as lines, hundreds of ribs turn the roof into
+    a dark moiré whose tone changes with the distance and the angle of the
+    view. Hidden, not soft: the faces keep their flat shading. Edges across
+    the slope (eave, ridge, sheet ends) stay visible."""
+    lim = math.cos(math.radians(max_deg))
+    for e in mesh.edges:
+        if e.soft or len(e.faces) != 2:
+            continue
+        a, b = e.a, e.b
+        dx, dy, dz = b.x() - a.x(), b.y() - a.y(), b.z() - a.z()
+        ln = math.sqrt(dx * dx + dy * dy + dz * dz)
+        if ln < 1e-9 or abs(dz) / ln < min_dz:
+            continue
+        n0, n1 = e.faces[0].normal(), e.faces[1].normal()
+        l0 = math.sqrt(n0.x() ** 2 + n0.y() ** 2 + n0.z() ** 2) or 1.0
+        l1 = math.sqrt(n1.x() ** 2 + n1.y() ** 2 + n1.z() ** 2) or 1.0
+        dot = (n0.x() * n1.x() + n0.y() * n1.y() + n0.z() * n1.z()) / (l0 * l1)
+        if dot > lim:
+            e.hidden = True
 
 
 # ---------------------------------------------------------------------------
@@ -1471,6 +1816,14 @@ def _columns(pl, p, spec, rows_y):
     ov = p["verge_ov"]
     tiles = p["verge"] == "tiles"
     info = {"stretch": 1.0}
+    if spec.get("sheet") and vl:
+        # steel sheets keep their cover width: laid from the left verge,
+        # the last sheet is cut at the right one
+        X0 = min(min(pc["a"][0], pc["b"][0]) for pc in vl) - ov
+        X1 = (max(max(pc["a"][0], pc["b"][0]) for pc in vr) + ov
+              if vr else xmax)
+        n = int(math.ceil((X1 - X0) / W - 1e-6)) + 1
+        return X0, W, n, info
     if vl and vr:
         X0 = min(min(pc["a"][0], pc["b"][0]) for pc in vl) - ov
         X1 = max(max(pc["a"][0], pc["b"][0]) for pc in vr) + ov
@@ -1687,6 +2040,7 @@ class Protos:
 
     def __init__(self, spec, p, attrs):
         self.spec, self.p, self.attrs = spec, p, attrs
+        self._hid = set()
         self._solids, self._mf, self._mesh = {}, {}, {}
         self._vol = {}
         self._cuts = {}
@@ -1729,6 +2083,12 @@ class Protos:
                         s = tile_solids(sp, det, "verge_r") + mono_tile_solid(
                             sp, det, W - Wt, W + t / 2, 0.0, ext, drop,
                             clamp=(W - Wt, W), side="r")
+            elif kind.startswith("mridge_end"):
+                _k, style, slope, floor = kind.split(":")
+                s = [mridge_end_solid(sp, style, float(slope), float(floor))]
+            elif kind.startswith("mridge"):
+                _k, style, slope, length = kind.split(":")
+                s = [mridge_solid(sp, style, float(slope), float(length))]
             elif kind.startswith("ridge_end"):
                 parts = kind.split(":")
                 skirt = float(parts[1]) if len(parts) > 1 else 0.0
@@ -1803,6 +2163,9 @@ class Protos:
                 polys = [[tuple(float(c) for c in (np.asarray(q) @ L.T))
                           for q in poly] for poly in polys]
             self._mesh[key] = mesh_from_polys(polys, self.attrs)
+        if self.spec.get("sheet") and key not in self._hid:
+            self._hid.add(key)
+            hide_rib_edges(self._mesh[key])
         return self._mesh[key]
 
     def polys(self, kind):
@@ -1830,6 +2193,8 @@ class Protos:
 
 
 def _lift(spec):
+    if spec.get("sheet"):
+        return 0.001
     L = max(spec["Lmin"], 0.5 * (spec["Lmin"] + spec["Lmax"]))
     return spec["t"] * spec["Lt"] / max(L, 0.02) + 0.002
 
@@ -1838,7 +2203,8 @@ def mono_tiles_ok(p, spec):
     """Mono-pitch ridges as one ridge tile per column (the tile's profile
     turned down over the edge) — for the profiled tiles; plain tiles laid
     half-bond and own tiles keep the plain mono-pitch ridge piece."""
-    return bool(p["mono"]) and spec["prof"] != "custom" and not spec["half"]
+    return (bool(p["mono"]) and spec["prof"] != "custom"
+            and not spec["half"] and not spec.get("sheet"))
 
 
 def layout(planes, p, spec, protos, progress=None):
@@ -2283,6 +2649,31 @@ def _verge_finish(pl, p, spec):
             continue
         m = len(sec)
         V = [at(s0, u, z) for u, z in sec] + [at(s1, u, z) for u, z in sec]
+        if mode == "metal":
+            # the top end at a ridge: mitred in the vertical plane through
+            # the ridge, so the flashings of both slopes meet cleanly under
+            # the ridge flashing (no overlap, no gap)
+            top_first = pl.to3(pc["a"])[2] > pl.to3(pc["b"])[2]
+            tip = pl.to3(pc["a"] if top_first else pc["b"])
+            rid = None
+            for q in pl.pieces:
+                if q["kind"] == "ridge" and (math.dist(q["a3"], tip) < 0.01
+                                             or math.dist(q["b3"], tip) < 0.01):
+                    rid = q
+                    break
+            if rid is not None:
+                rd = _norm(_v(rid["a3"], rid["b3"]))
+                nm = _norm(_cross(rd, (0.0, 0.0, 1.0)))
+                T = _norm(_v(pl.to3((0.0, 0.0)), pl.to3(d)))
+                if top_first:
+                    T = (-T[0], -T[1], -T[2])
+                den_m = _dot(nm, T)
+                if abs(den_m) > 1e-6:
+                    rng = range(0, m) if top_first else range(m, 2 * m)
+                    for i in rng:
+                        P = V[i]
+                        ds = -_dot(nm, _v(rid["a3"], P)) / den_m
+                        V[i] = _add(P, T, ds)
         F = [list(range(m - 1, -1, -1)), list(range(m, 2 * m))]
         for i in range(m):
             j = (i + 1) % m
@@ -2524,6 +2915,17 @@ def cap_placements(lines, p, spec):
     out, monos = [], []
     info = {"ridge": 0, "hip": 0, "mono": 0, "endcaps": 0}
     ext_v = p["verge_ov"] + 0.015
+    if spec.get("mridge"):
+        # metal: the ridge sheet ends 3 mm past the verge flashing's face
+        ext_v = p["verge_ov"] + 0.014 + 0.0015 + 0.003
+    hood = (spec.get("mridge") == "batten" and p["verge"] == "metal")
+    hood_face = p["verge_ov"] + 0.014 + 0.0015 + 0.003    # hood's front
+    hood_len = 0.0015 + 0.003 + 0.014 + 0.10              # over the flange
+    if hood:
+        # batten roll: the ridge cap ends under the verge flashing's hood
+        # (the verge covers the ridge, not the other way round)
+        ext_v = p["verge_ov"] + 0.014 - 0.07
+    info_hood = []
     for ln in lines:
         k = ln["kind"]
         if k == "ridge" and not p["ridge"]:
@@ -2569,6 +2971,70 @@ def cap_placements(lines, p, spec):
         bis = _norm(_add(ns[0], ns[-1]))
         bis = _norm(_add(bis, d, -_dot(bis, d)))
         xs = _cross(d, bis)
+        if spec.get("mridge"):
+            # steel sheet roof: a bent ridge / hip sheet on the sheets
+            slope = max(0.0, min(abs(_dot(n, xs)) / max(0.2, _dot(n, bis))
+                                 for n in ns))
+            den = max(0.2, min(_dot(n, bis) for n in ns))
+            # the sheets' top at the pans; the ridge sheet's own line adds
+            # the rib height where it rests on the ribs / seams
+            hs = spec["t"] + _lift(spec) + p["offset"]
+            origin = _add(a, bis, hs / den)
+            # one continuous ridge / hip sheet along the whole line
+            mk = f"mridge:{spec['mridge']}:{slope:.3f}:{L:.3f}"
+            M = np.eye(4)
+            M[:3, 0], M[:3, 1], M[:3, 2] = xs, d, bis
+            M[:3, 3] = origin
+            out.append((mk, M))
+            info["hip" if k == "hip" else "ridge"] += 1
+            if hood and k == "ridge":
+                fl = spec["A"] + 0.0055
+                o0 = _add(origin, d, sa)          # the ridge line's ends
+                for at_end, flag in ((False, ln["va"]), (True, ln["vb"])):
+                    if not flag:
+                        continue
+                    Mh = np.eye(4)
+                    if not at_end:
+                        Mh[:3, 0], Mh[:3, 1], Mh[:3, 2] = xs, d, bis
+                        Mh[:3, 3] = o0
+                    else:
+                        Mh[:3, 0] = (-xs[0], -xs[1], -xs[2])
+                        Mh[:3, 1] = (-d[0], -d[1], -d[2])
+                        Mh[:3, 2] = bis
+                        Mh[:3, 3] = _add(o0, d, L - sa - sb)
+                    for poly in _polys_of(mridge_hood_solids(
+                            spec, slope, -hood_face, -hood_face + hood_len,
+                            fl)):
+                        P = np.c_[np.asarray(poly, float),
+                                  np.ones(len(poly))] @ Mh.T
+                        info_hood.append([tuple(map(float, q))
+                                          for q in P[:, :3]])
+                continue                        # no end plates: hooded
+            if p["endcaps"]:
+                # the plate reaches down to the verge flashings' top (they
+                # run up under the ridge sheet), or to the pans
+                floor = spec["A"] + 0.0055 if p["verge"] == "metal" else 0.0
+                ek = f"mridge_end:{spec['mridge']}:{slope:.3f}:{floor:.4f}"
+                ends = []
+                if k == "ridge":
+                    ends = [(False, ln["va"]), (True, ln["vb"])]
+                elif k == "hip":
+                    ends = [(False, True)]
+                for at_end, flag in ends:
+                    if not flag:
+                        continue
+                    M = np.eye(4)
+                    if not at_end:
+                        M[:3, 0], M[:3, 1], M[:3, 2] = xs, d, bis
+                        M[:3, 3] = origin
+                    else:
+                        M[:3, 0] = (-xs[0], -xs[1], -xs[2])
+                        M[:3, 1] = (-d[0], -d[1], -d[2])
+                        M[:3, 2] = bis
+                        M[:3, 3] = _add(origin, d, L)
+                    out.append((ek, M))
+                    info["endcaps"] += 1
+            continue
         c = -1e9
         for n in ns:
             # the face lies on the side its normal leans to
@@ -2626,6 +3092,7 @@ def cap_placements(lines, p, spec):
             M[:3, 3] = origin
             out.append((end_kind, M))
             info["endcaps"] += 1
+    info["hood_polys"] = info_hood
     return out, monos, info
 
 
@@ -2638,6 +3105,8 @@ def compute(data, p, progress=None):
     t0 = time.time()
     p = normalize_params(p)
     spec = tile_spec(p)
+    if spec.get("metal") and p["verge"] == "tiles":
+        p = dict(p, verge="metal")         # no verge tiles for metal roofs
     planes = classify(build_planes(data))
     col = dict(COLORS)[p["color"]]
     attrs = {"color": col, "mat": f"Roof tile – {p['color']}"}
@@ -2645,6 +3114,8 @@ def compute(data, p, progress=None):
     place, cuts, flash, info = layout(planes, p, spec, protos, progress)
     lines = cap_lines(planes, p, spec)
     caps, monos, cinfo = cap_placements(lines, p, spec)
+    fl_attrs = {"color": FLASHING_COLOR, "mat": "Flashing"}
+    flash = flash + [(q, fl_attrs) for q in cinfo.pop("hood_polys", [])]
     cinfo["mono"] += info.pop("mono_tiles", 0)
     info.update(cinfo)
     info["planes"] = len(planes)
@@ -2660,6 +3131,8 @@ def estimate(data, p):
     """Fast count (no cutting) for the dialog: planes, edges, tiles."""
     p = normalize_params(p)
     spec = tile_spec(p)
+    if spec.get("metal") and p["verge"] == "tiles":
+        p = dict(p, verge="metal")
     planes = classify(build_planes(data))
     import manifold3d as mf
     n = 0
@@ -2703,6 +3176,10 @@ def build_group(res, p, name, data):
              "ridge_end": "Ridge end cap"}
     names.update({k: "Ridge end cap" for k, _M in res["place"]
                   if k.startswith("ridge_end")})
+    names.update({k: "Ridge end plate" for k, _M in res["place"]
+                  if k.startswith("mridge_end")})
+    names.update({k: "Ridge flashing" for k, _M in res["place"]
+                  if k.startswith("mridge:")})
     names.update({k: "Mono-pitch ridge tile" for k, _M in res["place"]
                   if k.startswith("mono")})
     names.update({k: "Cut tile" for k, _M in res["place"]
@@ -2744,6 +3221,8 @@ def build_group(res, p, name, data):
         mesh.add_faces_bulk(pos, sizes, np.ones(len(sizes), dtype=np.int64),
                             attr_list)
         _soften_fast(mesh, pos, sizes, 35.0)
+        if spec.get("sheet"):
+            hide_rib_edges(mesh)
     g = Group(mesh=mesh, name=name)
     g.adopt(kids)
     g.component = False                     # a group of tiles, not a component
@@ -4244,6 +4723,9 @@ def _unit():
 
 
 def _fmt(v, scale, unit, dec=2):
+    U = _pesi3d_units()
+    if U and not unit:                     # document units
+        return U["len"](v, fine=dec >= 3)
     return f"{v / scale:,.{dec}f} {unit}"
 
 
@@ -4306,6 +4788,8 @@ def _make_dialog_class():
             self.data = data
             self.old = old
             self.scale_m, self.ulabel = _unit()
+            if _pesi3d_units():            # fields in the document's units
+                self.scale_m, self.ulabel = 1.0, ""
             self.p = (normalize_params(roof_data(old).get("params"))
                       if old is not None else load_params())
             if self.p["preset"] == CUSTOM and not self.p.get("custom"):
@@ -4334,6 +4818,13 @@ def _make_dialog_class():
 
         # ---- UI ------------------------------------------------------------
         def _dspin(self, lo, hi, dec=3, tip=""):
+            U = _pesi3d_units()
+            if U:                          # metres, shown in document units
+                s = U["Length"](self, minimum=lo, maximum=hi)
+                s.setMinimumWidth(105)
+                s.setToolTip(tip)
+                s.valueChanged.connect(self._changed)
+                return s
             s = QDoubleSpinBox(self)
             sc = self.scale_m
             s.setRange(lo / sc, hi / sc)
@@ -4416,17 +4907,19 @@ def _make_dialog_class():
                                  "exactly on both.")
             tl.addRow("Cover width:", self.W)
             grow = QHBoxLayout()
-            self.Lmin = self._dspin(0.03, 2.0, 3, "Shortest batten gauge "
+            self.Lmin = self._dspin(0.03, 15.0, 3, "Shortest batten gauge "
                                     "(Lattweite) the tile allows.")
-            self.Lmax = self._dspin(0.03, 2.0, 3, "Longest batten gauge the "
+            self.Lmax = self._dspin(0.03, 15.0, 3, "Longest batten gauge the "
                                     "tile allows. The gauge is fitted "
                                     "between eave and ridge inside this "
                                     "range, so every course is a full one.")
             grow.addWidget(self.Lmin)
-            grow.addWidget(QLabel("to", self))
+            self.gauge_to = QLabel("to", self)
+            grow.addWidget(self.gauge_to)
             grow.addWidget(self.Lmax)
             grow.addStretch(1)
-            tl.addRow("Batten gauge:", grow)
+            self.gauge_lbl = QLabel("Batten gauge:", self)
+            tl.addRow(self.gauge_lbl, grow)
             self.detail = QComboBox(self)
             self.detail.addItem("Low (fast)", "low")
             self.detail.addItem("Medium", "medium")
@@ -4722,9 +5215,31 @@ def _make_dialog_class():
                 pr = PRESET_BY_ID[p["preset"]]
                 txt = (f"{pr['region']} · {_fmt(pr['Wt'], s, u, 3)} × "
                        f"{_fmt(pr['Lt'], s, u, 3)}")
-            gm = 0.5 * (spec["Lmin"] + spec["Lmax"])
-            txt += f" · ≈ {1.0 / (spec['W'] * gm):.1f} tiles/m²"
+            sheet = bool(spec.get("sheet"))
+            if sheet:
+                txt = (f"{pr['region']} · cover width "
+                       f"{_fmt(spec['W'], s, u, 3)} · sheets up to "
+                       f"{_fmt(spec['Lmax'], s, u, 2)} long, cut at the "
+                       f"ridge · from "
+                       f"{_pesi3d_units()['angle'](pr['minpitch']) if _pesi3d_units() else str(pr['minpitch']) + '°'}"
+                       f" pitch")
+            else:
+                gm = 0.5 * (spec["Lmin"] + spec["Lmax"])
+                txt += f" · ≈ {1.0 / (spec['W'] * gm):.1f} tiles/m²"
+            if spec.get("mridge"):
+                txt += f" · ridge: {MRIDGE_LABELS[spec['mridge']]}"
             self.tile_lbl.setText(txt)
+            # a steel sheet has a length, not a batten gauge range
+            self.gauge_lbl.setText("Sheet length:" if sheet
+                                   else "Batten gauge:")
+            self.Lmin.setVisible(not sheet)
+            self.gauge_to.setVisible(not sheet)
+            self.Lmax.setToolTip(
+                "Length of one sheet. A longer slope gets an end lap there; "
+                "the top sheet is cut at the ridge." if sheet else
+                "Longest batten gauge the tile allows. The gauge is fitted "
+                "between eave and ridge inside this range, so every course "
+                "is a full one.")
             try:
                 self.est = estimate(self.data, p)
             except RoofError as exc:
@@ -4749,7 +5264,9 @@ def _make_dialog_class():
             parts = [f"{ed[k]} {k}{'s' if ed[k] > 1 and k[-1] != 's' else ''}"
                      for k in order if ed.get(k)]
             tilts = sorted({round(pl.tilt) for pl in e["planes"]})
-            ttxt = ", ".join(f"{t}°" for t in tilts[:6])
+            _U = _pesi3d_units()
+            ttxt = ", ".join((_U["angle"](t) if _U else f"{t}°")
+                             for t in tilts[:6])
             txt = (f"{np_} roof plane{'s' if np_ > 1 else ''} · "
                    f"{e['area']:,.1f} m² · pitch {ttxt}<br>"
                    + " · ".join(parts))
@@ -5382,6 +5899,8 @@ def _make_shape_dialog_class():
             self.fp = fp
             self.old = old
             self.scale_m, self.ulabel = _unit()
+            if _pesi3d_units():            # fields in the document's units
+                self.scale_m, self.ulabel = 1.0, ""
             self.p = (gen_normalize(shape_data(old).get("params"))
                       if old is not None else gen_load_params())
             self._preview_cmd = None
@@ -5407,6 +5926,12 @@ def _make_shape_dialog_class():
 
         # ---- UI ------------------------------------------------------------
         def _len(self, lo, hi, tip=""):
+            U = _pesi3d_units()
+            if U:                          # metres, shown in document units
+                s = U["Length"](self, minimum=lo, maximum=hi)
+                s.setToolTip(tip)
+                s.valueChanged.connect(self._changed)
+                return s
             s = QDoubleSpinBox(self)
             sc = self.scale_m
             s.setRange(lo / sc, hi / sc)
@@ -5419,6 +5944,12 @@ def _make_shape_dialog_class():
             return s
 
         def _deg(self, tip=""):
+            U = _pesi3d_units()
+            if U:                          # degrees, shown in document units
+                s = U["Angle"](self, 0.5, 89.0, decimals=1)
+                s.setToolTip(tip)
+                s.valueChanged.connect(self._changed)
+                return s
             s = QDoubleSpinBox(self)
             s.setRange(0.5, 89.0)
             s.setDecimals(1)
@@ -5465,10 +5996,14 @@ def _make_shape_dialog_class():
             self.form.addRow("Type:", self.rtype)
             self.pitch = self._deg("Roof pitch.")
             self.pitch2 = self._deg("Second pitch (see its label).")
-            self.ratio = QDoubleSpinBox(self)
-            self.ratio.setRange(5, 98)
-            self.ratio.setDecimals(0)
-            self.ratio.setSuffix(" %")
+            _U = _pesi3d_units()
+            if _U:
+                self.ratio = _U["Number"](self, 5, 98, 0, " %")
+            else:
+                self.ratio = QDoubleSpinBox(self)
+                self.ratio.setRange(5, 98)
+                self.ratio.setDecimals(0)
+                self.ratio.setSuffix(" %")
             self.ratio.setKeyboardTracking(False)
             self.ratio.setToolTip("Where the change of shape starts, in % "
                                   "of the roof's height.")
@@ -6013,6 +6548,163 @@ def show_edit_shape(viewport, parent=None):
 # ---------------------------------------------------------------------------
 # Toolbar (PESI3D): icons drawn in IngeTrazo's own icon style
 # ---------------------------------------------------------------------------
+
+
+
+# ---------------------------------------------------------------------------
+# PESI3D unit fields — keep this block identical in every PESI3D plugin.
+# Every length, angle and number field shows and reads the units of the
+# open document (IngeTrazo ▸ Preferences ▸ Units: length unit and form,
+# precision, angle unit, decimal separator). value() stays in metres /
+# degrees, so the code behind a dialog never converts anything.
+# ---------------------------------------------------------------------------
+_PESI3D_UNITS = {}
+
+
+def _pesi3d_units():
+    """``{"Length", "Angle", "Area", "Number", "len", "area", "angle",
+    "num"}`` —
+    field classes and formatters in the document's units, or ``None`` on
+    IngeTrazo builds before 0.5.8 (then the plain fields are used)."""
+    if "ok" in _PESI3D_UNITS:
+        return _PESI3D_UNITS["ok"]
+    try:
+        import math as _m
+        from core import units
+        from views.length_field import LengthSpinBox
+        from PySide6.QtGui import QValidator
+        from PySide6.QtWidgets import QDoubleSpinBox
+    except Exception:  # noqa: BLE001 - an older IngeTrazo
+        _PESI3D_UNITS["ok"] = None
+        return None
+
+    def _read_number(text, suffix):
+        t = text.strip()
+        if suffix and t.endswith(suffix.strip()):
+            t = t[: -len(suffix.strip())]
+        t = t.replace(" ", "").replace(",", ".")
+        try:
+            return float(t)
+        except ValueError:
+            return None
+
+    class _Field(QDoubleSpinBox):
+        def _read(self, text):                     # → value or None
+            raise NotImplementedError
+
+        def valueFromText(self, text):
+            v = self._read(text)
+            return self.value() if v is None else v
+
+        def validate(self, text, pos):
+            v = self._read(text)
+            ok = v is not None and \
+                self.minimum() - 1e-9 <= v <= self.maximum() + 1e-9
+            return (QValidator.Acceptable if ok else QValidator.Intermediate,
+                    text, pos)
+
+        def fixup(self, text):
+            return text
+
+    class AngleSpinBox(_Field):
+        """value() in degrees; text in the document's angle unit (°, rad,
+        gon) and angle precision (at least ``decimals``)."""
+
+        def __init__(self, parent=None, minimum=-360.0, maximum=360.0,
+                     decimals=1):
+            super().__init__(parent)
+            self._unit = units.unit_setting("angle") or "deg"
+            self._shown = max(int(decimals),
+                              int(units.unit_setting("angle_precision") or 1))
+            super().setDecimals(9)
+            self.setRange(minimum, maximum)
+            self.setSingleStep({"deg": 1.0, "grad": 0.9}.get(
+                self._unit, _m.degrees(0.01)))
+            self.setKeyboardTracking(False)
+
+        def textFromValue(self, value):
+            return units.localized(units.format_angle(
+                _m.radians(value), self._unit, self._shown))
+
+        def _read(self, text):
+            r = units.parse(text, "angle", self._unit)
+            return _m.degrees(r.value) if r.ok else None
+
+    class AreaSpinBox(_Field):
+        """value() in m²; text in the document's area unit and precision."""
+
+        def __init__(self, parent=None, minimum=0.0, maximum=1e6):
+            super().__init__(parent)
+            u = units.unit_setting("area") or "auto"
+            self._unit = (units.area_unit_for(units.model_unit())
+                          if u == "auto" else u)
+            self._shown = max(2, int(units.unit_setting("area_precision")
+                                     or 2))
+            super().setDecimals(9)
+            self.setRange(minimum, maximum)
+            self.setSingleStep(units.convert(
+                10 ** -self._shown, self._unit, "m2"))
+            self.setKeyboardTracking(False)
+
+        def textFromValue(self, value):
+            return units.localized(units.format_area(
+                value, self._unit, self._shown))
+
+        def _read(self, text):
+            r = units.parse(text, "area", self._unit)
+            return r.value if r.ok else None
+
+    class NumberSpinBox(_Field):
+        """A plain number (%, passes, factor …) with the document's decimal
+        separator; «1,5» and «1.5» are both read."""
+
+        def __init__(self, parent=None, minimum=0.0, maximum=1e6,
+                     decimals=2, suffix=""):
+            super().__init__(parent)
+            self._dec, self._suf = int(decimals), suffix
+            super().setDecimals(max(int(decimals), 6))
+            self.setRange(minimum, maximum)
+            self.setSingleStep(1.0 if decimals == 0 else 10 ** -min(decimals, 1))
+            self.setKeyboardTracking(False)
+
+        def textFromValue(self, value):
+            return units.localized(f"{value:.{self._dec}f}{self._suf}")
+
+        def _read(self, text):
+            pre = self.prefix()
+            if pre and text.startswith(pre):
+                text = text[len(pre):]
+            return _read_number(text, self._suf)
+
+    class Length(LengthSpinBox):
+        def __init__(self, parent=None, minimum=0.0, maximum=1000.0,
+                     decimals=None):
+            super().__init__(parent, minimum=minimum, maximum=maximum,
+                             decimals=decimals)
+            self.setKeyboardTracking(False)
+
+    def fmt_len(metres, fine=False):
+        if fine:
+            return units.fmt_len_fine(float(metres))
+        return units.fmt_len(float(metres))
+
+    def fmt_area(m2):
+        return units.fmt_area(float(m2))
+
+    def fmt_angle(deg):
+        return units.fmt_angle_deg(float(deg))
+
+    def fmt_num(v, dec=2):
+        return units.localized(f"{float(v):,.{dec}f}".replace(",", " ")
+                               if abs(v) >= 1e4 else f"{float(v):.{dec}f}")
+
+    res = {"Length": Length, "Angle": AngleSpinBox, "Number": NumberSpinBox,
+           "Area": AreaSpinBox,
+           "len": fmt_len, "area": fmt_area, "angle": fmt_angle,
+           "num": fmt_num, "units": units}
+    _PESI3D_UNITS["ok"] = res
+    return res
+
 
 def _pesi3d_icons():
     """Icon key → draw(painter, ink, accent) on a 48 px canvas."""
